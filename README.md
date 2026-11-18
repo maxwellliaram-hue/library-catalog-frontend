@@ -40,12 +40,21 @@ Books come back as `{ books, total, page, limit }`, a single book as `{ book }`,
 - **Loading / error / empty states** are handled for the catalog, the genre list and the detail page. Errors offer a retry; the empty state offers "Clear search and filters".
 - **Bad ids** on the detail page (404/400 or an empty body) show a "Book not found" screen with a link back to the catalog. Unknown routes show a 404 page.
 
+## Week 5: reading list, auth and booking
+
+- **Reading list persistence: `localStorage`**, not backend sync. The API has no reading-list endpoint, the list is a per-browser convenience that doesn't need to follow the patron between devices, and it works for logged-out visitors too. `ReadingListContext` (Context + `useReducer`) loads from `localStorage` on startup and writes back on every change, with try/catch for corrupted JSON or blocked storage. Only a small snapshot of each book (id, title, author, genre, cover) is stored. Trade-off: the list doesn't sync across devices; a backend sync would be the next step if that matters.
+- **Auth uses the API's httpOnly cookie.** Every request sends `credentials: "include"`, and the API must allow the frontend origin with CORS `credentials: true`. `AuthContext` calls `GET /api/users/profile` on load to restore the session, and `login`/`register`/`logout` update state immediately, so protected routes unlock without a page reload. The API's register endpoint doesn't log the user in, so the app logs in right after a successful registration.
+- **Errors are shown in the forms:** wrong password (401), duplicate username/email (409), validation messages and network failures.
+- **`ProtectedRoute`** guards `/booking` at the route level (typing the URL while logged out redirects to `/login`, remembering the destination so login sends you back). While the session check is running it shows a loading state instead of flashing the login page.
+- **Booking form** keeps space, date, start and end time in local state, validates them (end after start) and shows the captured values. There's no API call yet. The space list is a placeholder until a spaces endpoint exists.
+
 ## Structure
 
 ```
 src/
-  api.js                     fetch helper + response normalizers
-  components/ BookCard, GenreFilter, SearchBar, Cover, StateMessage
-  hooks/      useBooks, useDebounce
-  pages/      CatalogPage, BookDetailPage
+  api.js                     fetch helpers (cookie credentials) + normalizers
+  context/    AuthContext, ReadingListContext
+  components/ BookCard, BookingForm, GenreFilter, ProtectedRoute, ReadingListButton, SearchBar, Cover, StateMessage
+  hooks/      useBooks, useDebounce, useReadingList
+  pages/      CatalogPage, BookDetailPage, LoginPage, RegisterPage, ReadingListPage, BookingPage
 ```
